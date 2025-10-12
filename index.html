@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hearthstone Wilted Shadow/Bandages Combo Calculator</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100%;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .card-images {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .card-image {
+            width: 80px;
+            height: 120px;
+            border-radius: 8px;
+            border: 2px solid #FFD700;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #007bff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #545b62 0%, #3d4449 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108,117,125,0.4);
+        }
+
+        .result-section {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #28a745;
+            display: none;
+        }
+
+        .result-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-lethal {
+            color: #dc3545;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .status-alive {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .damage-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .damage-stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+        }
+
+        .damage-stat .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .damage-stat .label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .recommendation {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .recommendation h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+
+        .details-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #6c757d;
+            display: none;
+        }
+
+        .toggle-details {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .toggle-details:hover {
+            background: #545b62;
+        }
+
+        .log-entry {
+            background: white;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-left: 3px solid #007bff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .damage-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🃏 Hearthstone Combo Calculator</h1>
+            <p>Wilted Shadow + Bandages Damage Calculator</p>
+            <div class="card-images">
+                <img src="https://hearthstone.wiki.gg/images/thumb/Wilted_Shadow_full.jpg/295px-Wilted_Shadow_full.jpg?48d3a5" alt="Wilted Shadow" class="card-image" onerror="this.src=''; this.alt='Wilted Shadow'; this.style.display='none';">
+                <img src="https://hearthstone.wiki.gg/images/thumb/Bandage_full.jpg/474px-Bandage_full.jpg?8629d4" alt="Bandage" class="card-image" onerror="this.src=''; this.alt='Bandage'; this.style.display='none';">
+                <img src="https://hearthstone.wiki.gg/images/thumb/Lesser_Heal_full.jpg/400px-Lesser_Heal_full.jpg?b63a8a" alt="Lesser Heal" class="card-image" onerror="this.src=''; this.alt='Lesser Heal'; this.style.display='none';">
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <h3>🎯 ข้อมูลการ์ดและศัตรู</h3>
+                
+                <div class="input-group">
+                    <label for="shadowAttacks">ค่าโจมตี Wilted Shadow แต่ละตัว (คั่นด้วยจุลภาคหากมีมากกว่าหนึ่งตัว):</label>
+                    <input type="text" id="shadowAttacks" placeholder="เช่น: 6 หรือ 7, 7, 9, 10" value="6">
+                </div>
+
+                <div class="input-group">
+                    <label for="bandageCount">จำนวน Bandages (Heal 3):</label>
+                    <input type="number" id="bandageCount" min="0" value="2">
+                </div>
+
+                <div class="input-group">
+                    <label>ใช้ Hero Power (Lesser Heal - Heal 2):</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="useHeroPower">
+                        <label for="useHeroPower">ใช้ Hero Power</label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="enemyMaxHealth">เลือดสูงสุดของศัตรู:</label>
+                    <input type="number" id="enemyMaxHealth" min="1" value="30">
+                </div>
+
+                <div class="input-group">
+                    <label for="enemyCurrentHealth">เลือดที่เหลือของศัตรู:</label>
+                    <input type="number" id="enemyCurrentHealth" min="0" value="30">
+                </div>
+
+                <div class="input-group">
+                    <label for="enemyArmor">เกราะของศัตรู:</label>
+                    <input type="number" id="enemyArmor" min="0" value="0">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="calculateCombo()">⚔️ คำนวณความเสียหายคอมโบ</button>
+                <button class="btn btn-secondary" onclick="resetForm()">🔄 รีเซ็ตค่าทั้งหมด</button>
+            </div>
+
+            <div id="errorMessage"></div>
+
+            <div id="resultSection" class="result-section">
+                <h3>📊 ผลลัพธ์การคำนวณ</h3>
+                <div id="resultSummary" class="result-summary"></div>
+            </div>
+
+            <div id="detailsSection" class="details-section">
+                <button class="toggle-details" onclick="toggleDetails()">📋 แสดงรายละเอียดเหตุการณ์</button>
+                <div id="logContainer" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let detailsVisible = false;
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('detailsSection').style.display = 'none';
+        }
+
+        function clearError() {
+            document.getElementById('errorMessage').innerHTML = '';
+        }
+
+        function validateInputs() {
+            const shadowAttacksStr = document.getElementById('shadowAttacks').value.trim();
+            const bandageCount = parseInt(document.getElementById('bandageCount').value);
+            const enemyMaxHealth = parseInt(document.getElementById('enemyMaxHealth').value);
+            const enemyCurrentHealth = parseInt(document.getElementById('enemyCurrentHealth').value);
+            const enemyArmor = parseInt(document.getElementById('enemyArmor').value);
+
+            if (!shadowAttacksStr) {
+                throw new Error('กรุณาป้อนค่าโจมตี Wilted Shadow');
+            }
+
+            const shadowAttacks = shadowAttacksStr.split(',').map(s => {
+                const num = parseInt(s.trim());
+                if (isNaN(num) || num < 0) {
+                    throw new Error('ค่าโจมตี Wilted Shadow ต้องเป็นตัวเลขที่ไม่ติดลบ');
+                }
+                return num;
+            });
+
+            if (isNaN(bandageCount) || bandageCount < 0) {
+                throw new Error('จำนวน Bandages ต้องเป็นตัวเลขที่ไม่ติดลบ');
+            }
+
+            if (isNaN(enemyMaxHealth) || enemyMaxHealth < 1) {
+                throw new Error('เลือดสูงสุดของศัตรูต้องเป็นตัวเลขที่มากกว่า 0');
+            }
+
+            if (isNaN(enemyCurrentHealth) || enemyCurrentHealth < 0) {
+                throw new Error('เลือดที่เหลือของศัตรูต้องเป็นตัวเลขที่ไม่ติดลบ');
+            }
+
+            if (isNaN(enemyArmor) || enemyArmor < 0) {
+                throw new Error('เกราะของศัตรูต้องเป็นตัวเลขที่ไม่ติดลบ');
+            }
+
+            if (enemyCurrentHealth > enemyMaxHealth) {
+                throw new Error('เลือดที่เหลือของศัตรูต้องไม่เกินเลือดสูงสุด');
+            }
+
+            return {
+                shadowAttacks,
+                bandageCount,
+                enemyMaxHealth,
+                enemyCurrentHealth,
+                enemyArmor,
+                useHeroPower: document.getElementById('useHeroPower').checked
+            };
+        }
+
+        function simulateCombo(inputs, heroPowerFirst = false) {
+            let health = inputs.enemyCurrentHealth;
+            let armor = inputs.enemyArmor;
+            let totalDamage = 0;
+            let log = [];
+
+            log.push(`เริ่มต้น: เลือด ${health}/${inputs.enemyMaxHealth}, เกราะ ${armor}`);
+
+            // สร้างลิสต์การกระทำ
+            let actions = [];
+            
+            // เพิ่ม Bandages
+            for (let i = 0; i < inputs.bandageCount; i++) {
+                actions.push({ type: 'bandage', heal: 3 });
+            }
+            
+            // เพิ่ม Hero Power ถ้าใช้
+            if (inputs.useHeroPower) {
+                if (heroPowerFirst) {
+                    actions.unshift({ type: 'heroPower', heal: 2 });
+                } else {
+                    actions.push({ type: 'heroPower', heal: 2 });
+                }
+            }
+
+            // ดำเนินการแต่ละ action
+            for (let action of actions) {
+                // Wilted Shadows โจมตีก่อน
+                for (let i = 0; i < inputs.shadowAttacks.length; i++) {
+                    const attack = inputs.shadowAttacks[i];
+                    let damageDealt = 0;
+                    
+                    if (armor > 0) {
+                        const armorDamage = Math.min(armor, attack);
+                        armor -= armorDamage;
+                        damageDealt += armorDamage;
+                        
+                        const remainingAttack = attack - armorDamage;
+                        if (remainingAttack > 0) {
+                            health -= remainingAttack;
+                            damageDealt += remainingAttack;
+                        }
+                    } else {
+                        health -= attack;
+                        damageDealt = attack;
+                    }
+                    
+                    totalDamage += damageDealt;
+                    log.push(`Wilted Shadow ${i + 1} โจมตี ${attack} ความเสียหาย (เลือด: ${health}, เกราะ: ${armor})`);
+                    
+                    // ตรวจสอบว่าศัตรูตายหรือไม่
+                    if (health <= 0) {
+                        log.push(`🎯 ศัตรูตาย! คอมโบหยุดทันที`);
+                        return { health, armor, totalDamage, log, lethal: true };
+                    }
+                }
+                
+                // ตรวจสอบเงื่อนไขการยกเลิกฮีล
+                const isFullHealthNoArmor = (health >= inputs.enemyMaxHealth && armor === 0);
+                
+                if (isFullHealthNoArmor) {
+                    log.push(`❌ ยกเลิกการฮีล ${action.heal} (ศัตรูเลือดเต็มและไม่มีเกราะ)`);
+                } else {
+                    // ทำการฮีล
+                    const oldHealth = health;
+                    health = Math.min(health + action.heal, inputs.enemyMaxHealth);
+                    const actualHeal = health - oldHealth;
+                    
+                    const actionName = action.type === 'heroPower' ? 'Hero Power' : 'Bandage';
+                    log.push(`💚 ${actionName} ฮีล ${actualHeal} (เลือด: ${health}/${inputs.enemyMaxHealth})`);
+                }
+            }
+
+            return { health, armor, totalDamage, log, lethal: false };
+        }
+
+        function calculateCombo() {
+            clearError();
+            
+            try {
+                const inputs = validateInputs();
+                
+                let bestResult = null;
+                let recommendation = '';
+                
+                if (inputs.useHeroPower) {
+                    // ทดสอบทั้งสองลำดับ
+                    const heroPowerFirstResult = simulateCombo(inputs, true);
+                    const heroPowerLastResult = simulateCombo(inputs, false);
+                    
+                    // เลือกผลลัพธ์ที่ดีที่สุด (Lethal หรือ damage สูงสุด)
+                    if (heroPowerFirstResult.lethal && !heroPowerLastResult.lethal) {
+                        bestResult = heroPowerFirstResult;
+                        recommendation = '🎯 แนะนำ: ใช้ Hero Power ก่อน Bandages (ทำให้เกิด Lethal)';
+                    } else if (!heroPowerFirstResult.lethal && heroPowerLastResult.lethal) {
+                        bestResult = heroPowerLastResult;
+                        recommendation = '🎯 แนะนำ: ใช้ Hero Power หลัง Bandages (ทำให้เกิด Lethal)';
+                    } else if (heroPowerFirstResult.totalDamage > heroPowerLastResult.totalDamage) {
+                        bestResult = heroPowerFirstResult;
+                        recommendation = '🎯 แนะนำ: ใช้ Hero Power ก่อน Bandages (ความเสียหายสูงกว่า)';
+                    } else if (heroPowerLastResult.totalDamage > heroPowerFirstResult.totalDamage) {
+                        bestResult = heroPowerLastResult;
+                        recommendation = '🎯 แนะนำ: ใช้ Hero Power หลัง Bandages (ความเสียหายสูงกว่า)';
+                    } else {
+                        bestResult = heroPowerFirstResult;
+                        recommendation = '⚖️ ทั้งสองลำดับให้ผลลัพธ์เท่ากัน';
+                    }
+                } else {
+                    bestResult = simulateCombo(inputs, false);
+                }
+                
+                displayResults(bestResult, inputs, recommendation);
+                
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function displayResults(result, inputs, recommendation) {
+            const resultSection = document.getElementById('resultSection');
+            const resultSummary = document.getElementById('resultSummary');
+            const detailsSection = document.getElementById('detailsSection');
+            const logContainer = document.getElementById('logContainer');
+            
+            // แสดงผลสรุป
+            const statusClass = result.lethal ? 'status-lethal' : 'status-alive';
+            const statusText = result.lethal ? '💀 ศัตรูตาย (Lethal!)' : '💚 ศัตรูยังมีชีวิต';
+            
+            let summaryHTML = `
+                <div class="${statusClass}">${statusText}</div>
+                <div class="damage-info">
+                    <div class="damage-stat">
+                        <div class="value">${result.totalDamage}</div>
+                        <div class="label">ความเสียหายสุทธิรวม</div>
+                    </div>
+                    <div class="damage-stat">
+                        <div class="value">${result.health}/${inputs.enemyMaxHealth}</div>
+                        <div class="label">เลือดสุดท้าย</div>
+                    </div>
+                    <div class="damage-stat">
+                        <div class="value">${result.armor}</div>
+                        <div class="label">เกราะสุดท้าย</div>
+                    </div>
+                </div>
+            `;
+            
+            if (recommendation) {
+                summaryHTML += `
+                    <div class="recommendation">
+                        <h4>💡 คำแนะนำลำดับการใช้</h4>
+                        <p>${recommendation}</p>
+                    </div>
+                `;
+            }
+            
+            resultSummary.innerHTML = summaryHTML;
+            
+            // แสดง log
+            let logHTML = '';
+            result.log.forEach(entry => {
+                logHTML += `<div class="log-entry">${entry}</div>`;
+            });
+            logContainer.innerHTML = logHTML;
+            
+            resultSection.style.display = 'block';
+            detailsSection.style.display = 'block';
+        }
+
+        function toggleDetails() {
+            const logContainer = document.getElementById('logContainer');
+            const toggleButton = document.querySelector('.toggle-details');
+            
+            detailsVisible = !detailsVisible;
+            
+            if (detailsVisible) {
+                logContainer.style.display = 'block';
+                toggleButton.textContent = '📋 ซ่อนรายละเอียดเหตุการณ์';
+            } else {
+                logContainer.style.display = 'none';
+                toggleButton.textContent = '📋 แสดงรายละเอียดเหตุการณ์';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('shadowAttacks').value = '6';
+            document.getElementById('bandageCount').value = '2';
+            document.getElementById('useHeroPower').checked = false;
+            document.getElementById('enemyMaxHealth').value = '30';
+            document.getElementById('enemyCurrentHealth').value = '30';
+            document.getElementById('enemyArmor').value = '0';
+            
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('detailsSection').style.display = 'none';
+            clearError();
+            detailsVisible = false;
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98d75c74575d8945',t:'MTc2MDI4MDExOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
