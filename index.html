@@ -11,7 +11,7 @@
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             margin: 0;
             padding: 20px;
-            min-height: 100%;
+            min-height: 100vh;
             color: #333;
         }
 
@@ -171,6 +171,16 @@
             font-weight: bold;
             font-size: 1.2em;
         }
+        
+        .lethal-summary {
+            margin-top: 15px;
+            padding: 15px;
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            background: #e9f5ff;
+            font-weight: bold;
+            color: #0056b3;
+        }
 
         .damage-info {
             display: grid;
@@ -199,19 +209,6 @@
             margin-top: 5px;
         }
 
-        .recommendation {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .recommendation h4 {
-            margin: 0 0 10px 0;
-            color: #856404;
-        }
-
         .details-section {
             background: #f8f9fa;
             border-radius: 10px;
@@ -228,6 +225,7 @@
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 15px;
+            transition: background 0.3s;
         }
 
         .toggle-details:hover {
@@ -242,6 +240,12 @@
             border-left: 3px solid #007bff;
             font-family: 'Courier New', monospace;
             font-size: 14px;
+        }
+
+        .log-entry.log-lethal {
+            border-left: 3px solid #dc3545;
+            font-weight: bold;
+            background: #f8d7da;
         }
 
         .error-message {
@@ -279,10 +283,7 @@
             <h1>🃏 Hearthstone Combo Calculator</h1>
             <p>Wilted Shadow + Bandages Damage Calculator</p>
             <div class="card-images">
-                <img src="https://hearthstone.wiki.gg/images/thumb/Wilted_Shadow_full.jpg/295px-Wilted_Shadow_full.jpg?48d3a5" alt="Wilted Shadow" class="card-image" onerror="this.src=''; this.alt='Wilted Shadow'; this.style.display='none';">
-                <img src="https://hearthstone.wiki.gg/images/thumb/Bandage_full.jpg/474px-Bandage_full.jpg?8629d4" alt="Bandage" class="card-image" onerror="this.src=''; this.alt='Bandage'; this.style.display='none';">
-                <img src="https://hearthstone.wiki.gg/images/thumb/Lesser_Heal_full.jpg/400px-Lesser_Heal_full.jpg?b63a8a" alt="Lesser Heal" class="card-image" onerror="this.src=''; this.alt='Lesser Heal'; this.style.display='none';">
-            </div>
+                </div>
         </div>
 
         <div class="content">
@@ -291,19 +292,19 @@
                 
                 <div class="input-group">
                     <label for="shadowAttacks">ค่าโจมตี Wilted Shadow แต่ละตัว (คั่นด้วยจุลภาคหากมีมากกว่าหนึ่งตัว):</label>
-                    <input type="text" id="shadowAttacks" placeholder="เช่น: 6 หรือ 7, 7, 9, 10" value="6">
+                    <input type="text" id="shadowAttacks" placeholder="เช่น: 6 หรือ 7, 7, 9, 10" value="11">
                 </div>
 
                 <div class="input-group">
-                    <label for="bandageCount">จำนวน Bandages (Heal 3):</label>
-                    <input type="number" id="bandageCount" min="0" value="2">
+                    <label for="bandageCount">จำนวน Bandages (Heal 3) ที่คุณมีในมือ:</label>
+                    <input type="number" id="bandageCount" min="0" value="6">
                 </div>
 
                 <div class="input-group">
                     <label>ใช้ Hero Power (Lesser Heal - Heal 2):</label>
                     <div class="checkbox-group">
-                        <input type="checkbox" id="useHeroPower">
-                        <label for="useHeroPower">ใช้ Hero Power</label>
+                        <input type="checkbox" id="useHeroPower" checked>
+                        <label for="useHeroPower">ใช้ Hero Power (จะถูกใช้เป็นอันดับแรกเสมอ)</label>
                     </div>
                 </div>
 
@@ -319,13 +320,13 @@
 
                 <div class="input-group">
                     <label for="enemyArmor">เกราะของศัตรู:</label>
-                    <input type="number" id="enemyArmor" min="0" value="0">
+                    <input type="number" id="enemyArmor" min="0" value="22">
                 </div>
             </div>
 
             <div class="button-group">
                 <button class="btn btn-primary" onclick="calculateCombo()">⚔️ คำนวณความเสียหายคอมโบ</button>
-                <button class="btn btn-secondary" onclick="resetForm()">🔄 รีเซ็ตค่าทั้งหมด</button>
+                <button class="btn btn-secondary" onclick="resetForm()">🔄 รีเซ็ตค่าเริ่มต้น</button>
             </div>
 
             <div id="errorMessage"></div>
@@ -369,8 +370,8 @@
 
             const shadowAttacks = shadowAttacksStr.split(',').map(s => {
                 const num = parseInt(s.trim());
-                if (isNaN(num) || num < 0) {
-                    throw new Error('ค่าโจมตี Wilted Shadow ต้องเป็นตัวเลขที่ไม่ติดลบ');
+                if (isNaN(num) || num <= 0) {
+                    throw new Error('ค่าโจมตี Wilted Shadow ต้องเป็นตัวเลขบวก');
                 }
                 return num;
             });
@@ -405,125 +406,113 @@
             };
         }
 
-        function simulateCombo(inputs, heroPowerFirst = false) {
-            let health = inputs.enemyCurrentHealth;
-            let armor = inputs.enemyArmor;
-            let totalDamage = 0;
-            let log = [];
+        /**
+         * จำลองคอมโบตามตรรกะที่ว่า: การใช้ Targeted Heal ใดๆ จะกระตุ้น Wilted Shadow เสมอ (ไม่มี Heal Cancelation)
+         */
+        function simulateCombo(inputs) {
+    let health = inputs.enemyCurrentHealth;
+    let armor = inputs.enemyArmor;
+    let totalDamage = 0;
+    let log = [];
+    let currentBandageIndex = 0;
+    let heroPowerUsedForLethal = false;
+    let lethalAchieved = false;
 
-            log.push(`เริ่มต้น: เลือด ${health}/${inputs.enemyMaxHealth}, เกราะ ${armor}`);
+    let actions = [];
+    if (inputs.useHeroPower) {
+        actions.push({ type: 'heroPower', heal: 2 });
+    }
+    for (let i = 0; i < inputs.bandageCount; i++) {
+        actions.push({ type: 'bandage', heal: 3 });
+    }
+    
+    log.push(`เริ่มต้น: เลือด ${health}/${inputs.enemyMaxHealth}, เกราะ ${armor}`);
 
-            // สร้างลิสต์การกระทำ
-            let actions = [];
-            
-            // เพิ่ม Bandages
-            for (let i = 0; i < inputs.bandageCount; i++) {
-                actions.push({ type: 'bandage', heal: 3 });
-            }
-            
-            // เพิ่ม Hero Power ถ้าใช้
-            if (inputs.useHeroPower) {
-                if (heroPowerFirst) {
-                    actions.unshift({ type: 'heroPower', heal: 2 });
-                } else {
-                    actions.push({ type: 'heroPower', heal: 2 });
-                }
-            }
+    for (let action of actions) {
+        if (lethalAchieved) break; 
 
-            // ดำเนินการแต่ละ action
-            for (let action of actions) {
-                // Wilted Shadows โจมตีก่อน
-                for (let i = 0; i < inputs.shadowAttacks.length; i++) {
-                    const attack = inputs.shadowAttacks[i];
-                    let damageDealt = 0;
-                    
-                    if (armor > 0) {
-                        const armorDamage = Math.min(armor, attack);
-                        armor -= armorDamage;
-                        damageDealt += armorDamage;
-                        
-                        const remainingAttack = attack - armorDamage;
-                        if (remainingAttack > 0) {
-                            health -= remainingAttack;
-                            damageDealt += remainingAttack;
-                        }
-                    } else {
-                        health -= attack;
-                        damageDealt = attack;
-                    }
-                    
-                    totalDamage += damageDealt;
-                    log.push(`Wilted Shadow ${i + 1} โจมตี ${attack} ความเสียหาย (เลือด: ${health}, เกราะ: ${armor})`);
-                    
-                    // ตรวจสอบว่าศัตรูตายหรือไม่
-                    if (health <= 0) {
-                        log.push(`🎯 ศัตรูตาย! คอมโบหยุดทันที`);
-                        return { health, armor, totalDamage, log, lethal: true };
-                    }
-                }
-                
-                // ตรวจสอบเงื่อนไขการยกเลิกฮีล
-                const isFullHealthNoArmor = (health >= inputs.enemyMaxHealth && armor === 0);
-                
-                if (isFullHealthNoArmor) {
-                    log.push(`❌ ยกเลิกการฮีล ${action.heal} (ศัตรูเลือดเต็มและไม่มีเกราะ)`);
-                } else {
-                    // ทำการฮีล
-                    const oldHealth = health;
-                    health = Math.min(health + action.heal, inputs.enemyMaxHealth);
-                    const actualHeal = health - oldHealth;
-                    
-                    const actionName = action.type === 'heroPower' ? 'Hero Power' : 'Bandage';
-                    log.push(`💚 ${actionName} ฮีล ${actualHeal} (เลือด: ${health}/${inputs.enemyMaxHealth})`);
-                }
-            }
-
-            return { health, armor, totalDamage, log, lethal: false };
+        const actionName = action.type === 'heroPower' ? 'Hero Power (Lesser Heal)' : 'Bandage';
+        const isBandage = action.type === 'bandage';
+        
+        if (isBandage) {
+            currentBandageIndex++;
+        } else if (action.type === 'heroPower') {
+            heroPowerUsedForLethal = true;
         }
+
+        // ตรวจสอบก่อน action: heal จะเกิดไหม
+        const wouldHeal = health < inputs.enemyMaxHealth;
+        log.push(`${actionName}: เริ่ม (would heal: ${wouldHeal ? 'ใช่' : 'ไม่'})`);
+
+        // โจมตีจากทุก Shadow ตามลำดับ จนตาย
+        let shadowIndex = 0;
+        for (let attack of inputs.shadowAttacks) {
+            if (health <= 0) break;
+
+            let damageDealt = 0;
+            
+            // จัดการเกราะ
+            const armorDamage = Math.min(armor, attack);
+            armor -= armorDamage;
+            damageDealt += armorDamage;
+            
+            // จัดการเลือด
+            const remainingAttack = attack - armorDamage;
+            if (remainingAttack > 0) {
+                health -= remainingAttack;
+                damageDealt += remainingAttack;
+            }
+            
+            totalDamage += damageDealt;
+            log.push(`  Wilted Shadow ${shadowIndex + 1} โจมตี ${attack} (เหลือเลือด: ${Math.max(0, health)}, เกราะ: ${armor})`);
+            
+            shadowIndex++;
+            
+            if (health <= 0) {
+                log.push(`<div class="log-entry log-lethal">🎯 ศัตรูตาย! หยุด triggers</div>`);
+                lethalAchieved = true;
+                break;
+            }
+        }
+
+        // ถ้าไม่ตายและ wouldHeal ให้ heal
+        if (!lethalAchieved && wouldHeal) {
+            const oldHealth = health;
+            health = Math.min(health + action.heal, inputs.enemyMaxHealth); 
+            const actualHeal = health - oldHealth;
+            log.push(`  💚 ${actionName} ฮีล ${actualHeal} (เลือด: ${health}/${inputs.enemyMaxHealth})`);
+        } else if (!lethalAchieved) {
+            log.push(`  💚 ${actionName} ไม่ฮีล (full health)`);
+        }
+    }
+    
+    const finalBandagesUsed = lethalAchieved ? currentBandageIndex : inputs.bandageCount;
+
+    return { 
+        health: Math.max(0, health), 
+        armor, 
+        totalDamage, 
+        log, 
+        lethal: lethalAchieved, 
+        bandagesUsed: finalBandagesUsed, 
+        heroPowerUsedForLethal 
+    };
+}
 
         function calculateCombo() {
             clearError();
             
             try {
                 const inputs = validateInputs();
-                
-                let bestResult = null;
-                let recommendation = '';
-                
-                if (inputs.useHeroPower) {
-                    // ทดสอบทั้งสองลำดับ
-                    const heroPowerFirstResult = simulateCombo(inputs, true);
-                    const heroPowerLastResult = simulateCombo(inputs, false);
-                    
-                    // เลือกผลลัพธ์ที่ดีที่สุด (Lethal หรือ damage สูงสุด)
-                    if (heroPowerFirstResult.lethal && !heroPowerLastResult.lethal) {
-                        bestResult = heroPowerFirstResult;
-                        recommendation = '🎯 แนะนำ: ใช้ Hero Power ก่อน Bandages (ทำให้เกิด Lethal)';
-                    } else if (!heroPowerFirstResult.lethal && heroPowerLastResult.lethal) {
-                        bestResult = heroPowerLastResult;
-                        recommendation = '🎯 แนะนำ: ใช้ Hero Power หลัง Bandages (ทำให้เกิด Lethal)';
-                    } else if (heroPowerFirstResult.totalDamage > heroPowerLastResult.totalDamage) {
-                        bestResult = heroPowerFirstResult;
-                        recommendation = '🎯 แนะนำ: ใช้ Hero Power ก่อน Bandages (ความเสียหายสูงกว่า)';
-                    } else if (heroPowerLastResult.totalDamage > heroPowerFirstResult.totalDamage) {
-                        bestResult = heroPowerLastResult;
-                        recommendation = '🎯 แนะนำ: ใช้ Hero Power หลัง Bandages (ความเสียหายสูงกว่า)';
-                    } else {
-                        bestResult = heroPowerFirstResult;
-                        recommendation = '⚖️ การใช้ Hero Power เป็นอันดับแรกสุด หรือท้ายสุด ให้ผลลัพธ์ไม่ต่างกัน';
-                    }
-                } else {
-                    bestResult = simulateCombo(inputs, false);
-                }
-                
-                displayResults(bestResult, inputs, recommendation);
+                const result = simulateCombo(inputs);
+                displayResults(result, inputs);
                 
             } catch (error) {
                 showError(error.message);
             }
         }
 
-        function displayResults(result, inputs, recommendation) {
+        function displayResults(result, inputs) {
             const resultSection = document.getElementById('resultSection');
             const resultSummary = document.getElementById('resultSummary');
             const detailsSection = document.getElementById('detailsSection');
@@ -541,7 +530,7 @@
                         <div class="label">ความเสียหายสุทธิรวม</div>
                     </div>
                     <div class="damage-stat">
-                        <div class="value">${result.health}/${inputs.enemyMaxHealth}</div>
+                        <div class="value">${Math.max(0, result.health)}/${inputs.enemyMaxHealth}</div>
                         <div class="label">เลือดสุดท้าย</div>
                     </div>
                     <div class="damage-stat">
@@ -551,10 +540,29 @@
                 </div>
             `;
             
-            if (recommendation) {
+            if (result.lethal) {
+                let lethalActionsSummary = [];
+                let totalActions = 0;
+                
+                if (result.heroPowerUsedForLethal) {
+                    lethalActionsSummary.push("Hero Power (Lesser Heal) 1 ครั้ง");
+                    totalActions++;
+                }
+                if (result.bandagesUsed > 0) {
+                    lethalActionsSummary.push(`Bandage (Heal 3) ${result.bandagesUsed} ใบ`);
+                    totalActions += result.bandagesUsed;
+                }
+
+                const excess = inputs.bandageCount - result.bandagesUsed;
+                let recommendation = `ใช้ ${lethalActionsSummary.join(' และ ')} (รวม ${totalActions} Actions)`;
+                
+                if (excess > 0) {
+                    recommendation += `, **Bandage ที่เกินมา ${excess} ใบไม่จำเป็นต้องใช้**`;
+                }
+
                 summaryHTML += `
-                    <div class="recommendation">
-                        <h4>💡 คำแนะนำลำดับการใช้</h4>
+                    <div class="lethal-summary">
+                        <h4>🎯 สรุปการ์ดที่จำเป็นสำหรับ Lethal</h4>
                         <p>${recommendation}</p>
                     </div>
                 `;
@@ -589,6 +597,7 @@
         }
 
         function resetForm() {
+            // ตั้งค่าเริ่มต้นตามเคสที่คุณพบข้อผิดพลาด
             document.getElementById('shadowAttacks').value = '6';
             document.getElementById('bandageCount').value = '2';
             document.getElementById('useHeroPower').checked = false;
@@ -601,6 +610,9 @@
             clearError();
             detailsVisible = false;
         }
+
+        // ตั้งค่าเริ่มต้นเมื่อโหลดหน้า
+        window.onload = resetForm;
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98d75c74575d8945',t:'MTc2MDI4MDExOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
