@@ -304,7 +304,7 @@
                     <label>ใช้ Hero Power (Lesser Heal - Heal 2):</label>
                     <div class="checkbox-group">
                         <input type="checkbox" id="useHeroPower" checked>
-                        <label for="useHeroPower">ใช้ Hero Power (จะถูกใช้เป็นอันดับแรกเสมอ)</label>
+                        <label for="useHeroPower">ใช้ Hero Power (กรุณาอ่านคำแนะนำ เพื่อดูลำดับในการใช้ Hero Power หากไม่มีคำแนะนำแสดงว่าการใช้ Hero Power ลำดับใดๆไม่มีความแตกต่างกัน)</label>
                     </div>
                 </div>
 
@@ -407,97 +407,114 @@
         }
 
         /**
-         * จำลองคอมโบตามตรรกะที่ว่า: การใช้ Targeted Heal ใดๆ จะกระตุ้น Wilted Shadow เสมอ (ไม่มี Heal Cancelation)
+         * จำลองด้วยลำดับ heals ที่กำหนด
+         */
+        function simulateWithSequence(heals, inputs) {
+            let health = inputs.enemyCurrentHealth;
+            let armor = inputs.enemyArmor;
+            let totalDamage = 0;
+            let log = [];
+            let currentBandageIndex = 0;
+            let heroPowerUsedForLethal = false;
+            let lethalAchieved = false;
+
+            log.push(`เริ่มต้น: เลือด ${health}/${inputs.enemyMaxHealth}, เกราะ ${armor}`);
+
+            for (let i = 0; i < heals.length; i++) {
+                if (lethalAchieved) break;
+
+                const heal = heals[i];
+                const isHeroPower = heal === 2;
+                const actionName = isHeroPower ? 'Hero Power (Lesser Heal)' : 'Bandage';
+                
+                if (isHeroPower) {
+                    heroPowerUsedForLethal = true;
+                } else {
+                    currentBandageIndex++;
+                }
+
+                const wouldHeal = health < inputs.enemyMaxHealth;
+                log.push(`${actionName} ${i + 1}: เริ่ม (would heal: ${wouldHeal ? 'ใช่' : 'ไม่'})`);
+
+                // โจมตีจากทุก Shadow
+                for (let j = 0; j < inputs.shadowAttacks.length; j++) {
+                    if (health <= 0) break;
+
+                    const attack = inputs.shadowAttacks[j];
+                    let damageDealt = 0;
+                    
+                    const armorDamage = Math.min(armor, attack);
+                    armor -= armorDamage;
+                    damageDealt += armorDamage;
+                    
+                    const remainingAttack = attack - armorDamage;
+                    if (remainingAttack > 0) {
+                        health -= remainingAttack;
+                        damageDealt += remainingAttack;
+                    }
+                    
+                    totalDamage += damageDealt;
+                    log.push(`  Wilted Shadow ${j + 1} โจมตี ${attack} (เลือด: ${Math.max(0, health)}, เกราะ: ${armor})`);
+                    
+                    if (health <= 0) {
+                        log.push(`<div class="log-entry log-lethal">🎯 ศัตรูตาย! หยุด triggers</div>`);
+                        lethalAchieved = true;
+                        break;
+                    }
+                }
+
+                if (!lethalAchieved && wouldHeal) {
+                    const oldHealth = health;
+                    health = Math.min(health + heal, inputs.enemyMaxHealth);
+                    const actualHeal = health - oldHealth;
+                    log.push(`  💚 ${actionName} ฮีล ${actualHeal} (เลือด: ${health}/${inputs.enemyMaxHealth})`);
+                } else if (!lethalAchieved) {
+                    log.push(`  💚 ${actionName} ไม่ฮีล (full health)`);
+                }
+            }
+            
+            const finalBandagesUsed = lethalAchieved ? currentBandageIndex : inputs.bandageCount;
+
+            return { 
+                health: Math.max(0, health), 
+                armor, 
+                totalDamage, 
+                log, 
+                lethal: lethalAchieved, 
+                bandagesUsed: finalBandagesUsed, 
+                heroPowerUsedForLethal 
+            };
+        }
+
+        /**
+         * คำนวณคอมโบ หาลำดับ Hero Power ที่ดีที่สุด
          */
         function simulateCombo(inputs) {
-    let health = inputs.enemyCurrentHealth;
-    let armor = inputs.enemyArmor;
-    let totalDamage = 0;
-    let log = [];
-    let currentBandageIndex = 0;
-    let heroPowerUsedForLethal = false;
-    let lethalAchieved = false;
+            let bestResult = null;
+            let bestPosition = 1; // 1-based, default first
+            let maxDamage = -1;
 
-    let actions = [];
-    if (inputs.useHeroPower) {
-        actions.push({ type: 'heroPower', heal: 2 });
-    }
-    for (let i = 0; i < inputs.bandageCount; i++) {
-        actions.push({ type: 'bandage', heal: 3 });
-    }
-    
-    log.push(`เริ่มต้น: เลือด ${health}/${inputs.enemyMaxHealth}, เกราะ ${armor}`);
-
-    for (let action of actions) {
-        if (lethalAchieved) break; 
-
-        const actionName = action.type === 'heroPower' ? 'Hero Power (Lesser Heal)' : 'Bandage';
-        const isBandage = action.type === 'bandage';
-        
-        if (isBandage) {
-            currentBandageIndex++;
-        } else if (action.type === 'heroPower') {
-            heroPowerUsedForLethal = true;
-        }
-
-        // ตรวจสอบก่อน action: heal จะเกิดไหม
-        const wouldHeal = health < inputs.enemyMaxHealth;
-        log.push(`${actionName}: เริ่ม (would heal: ${wouldHeal ? 'ใช่' : 'ไม่'})`);
-
-        // โจมตีจากทุก Shadow ตามลำดับ จนตาย
-        let shadowIndex = 0;
-        for (let attack of inputs.shadowAttacks) {
-            if (health <= 0) break;
-
-            let damageDealt = 0;
-            
-            // จัดการเกราะ
-            const armorDamage = Math.min(armor, attack);
-            armor -= armorDamage;
-            damageDealt += armorDamage;
-            
-            // จัดการเลือด
-            const remainingAttack = attack - armorDamage;
-            if (remainingAttack > 0) {
-                health -= remainingAttack;
-                damageDealt += remainingAttack;
+            if (!inputs.useHeroPower) {
+                const heals = new Array(inputs.bandageCount).fill(3);
+                bestResult = simulateWithSequence(heals, inputs);
+            } else {
+                const N = inputs.bandageCount;
+                for (let pos = 0; pos <= N; pos++) { // pos=0: first, pos=N: last
+                    let heals = new Array(pos).fill(3);
+                    heals.push(2);
+                    heals = heals.concat(new Array(N - pos).fill(3));
+                    const result = simulateWithSequence(heals, inputs);
+                    if (result.totalDamage > maxDamage) {
+                        maxDamage = result.totalDamage;
+                        bestResult = result;
+                        bestPosition = pos + 1;
+                    }
+                }
             }
-            
-            totalDamage += damageDealt;
-            log.push(`  Wilted Shadow ${shadowIndex + 1} โจมตี ${attack} (เหลือเลือด: ${Math.max(0, health)}, เกราะ: ${armor})`);
-            
-            shadowIndex++;
-            
-            if (health <= 0) {
-                log.push(`<div class="log-entry log-lethal">🎯 ศัตรูตาย! หยุด triggers</div>`);
-                lethalAchieved = true;
-                break;
-            }
-        }
 
-        // ถ้าไม่ตายและ wouldHeal ให้ heal
-        if (!lethalAchieved && wouldHeal) {
-            const oldHealth = health;
-            health = Math.min(health + action.heal, inputs.enemyMaxHealth); 
-            const actualHeal = health - oldHealth;
-            log.push(`  💚 ${actionName} ฮีล ${actualHeal} (เลือด: ${health}/${inputs.enemyMaxHealth})`);
-        } else if (!lethalAchieved) {
-            log.push(`  💚 ${actionName} ไม่ฮีล (full health)`);
+            bestResult.bestPosition = bestPosition;
+            return bestResult;
         }
-    }
-    
-    const finalBandagesUsed = lethalAchieved ? currentBandageIndex : inputs.bandageCount;
-
-    return { 
-        health: Math.max(0, health), 
-        armor, 
-        totalDamage, 
-        log, 
-        lethal: lethalAchieved, 
-        bandagesUsed: finalBandagesUsed, 
-        heroPowerUsedForLethal 
-    };
-}
 
         function calculateCombo() {
             clearError();
@@ -540,6 +557,11 @@
                 </div>
             `;
             
+            // แนะนำลำดับ Hero Power ถ้าไม่ใช่ first
+            if (inputs.useHeroPower && result.bestPosition !== 1) {
+                summaryHTML += `<p class="lethal-summary">💡 แนะนำ: ใช้ Hero Power เป็น action ที่ ${result.bestPosition} เพื่อความเสียหายสูงสุด (${result.totalDamage})</p>`;
+            }
+            
             if (result.lethal) {
                 let lethalActionsSummary = [];
                 let totalActions = 0;
@@ -573,7 +595,11 @@
             // แสดง log
             let logHTML = '';
             result.log.forEach(entry => {
-                logHTML += `<div class="log-entry">${entry}</div>`;
+                if (entry.includes('<div')) {
+                    logHTML += entry;
+                } else {
+                    logHTML += `<div class="log-entry">${entry}</div>`;
+                }
             });
             logContainer.innerHTML = logHTML;
             
@@ -598,12 +624,12 @@
 
         function resetForm() {
             // ตั้งค่าเริ่มต้นตามเคสที่คุณพบข้อผิดพลาด
-            document.getElementById('shadowAttacks').value = '6';
-            document.getElementById('bandageCount').value = '2';
-            document.getElementById('useHeroPower').checked = false;
+            document.getElementById('shadowAttacks').value = '11';
+            document.getElementById('bandageCount').value = '6';
+            document.getElementById('useHeroPower').checked = true;
             document.getElementById('enemyMaxHealth').value = '30';
             document.getElementById('enemyCurrentHealth').value = '30';
-            document.getElementById('enemyArmor').value = '0';
+            document.getElementById('enemyArmor').value = '22';
             
             document.getElementById('resultSection').style.display = 'none';
             document.getElementById('detailsSection').style.display = 'none';
