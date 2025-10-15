@@ -700,7 +700,7 @@
                 enemyHealth: `${inputs.enemyCurrentHealth}/${inputs.enemyMaxHealth}`,
                 enemyArmor: inputs.enemyArmor,
                 bandagesUsed: result.lethal ? result.bandagesUsed : inputs.bandageCount,
-                enemyAlive: result.lethal ? 'ไม่' : 'ใช่',
+                enemyAlive: result.lethal ? '💀' : '💚',
                 finalHealth: `${Math.max(0, result.health)}/${inputs.enemyMaxHealth}`,
                 finalArmor: result.armor
             });
