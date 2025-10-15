@@ -533,7 +533,6 @@
             errorDiv.innerHTML = `<div class="error-message">❌ ${message}</div>`;
             document.getElementById('resultSection').style.display = 'none';
             document.getElementById('detailsSection').style.display = 'none';
-            document.getElementById('historySection').style.display = 'none';
         }
 
         function clearError() {
@@ -762,7 +761,7 @@
                 </tr>
             `;
             historyTableBody.innerHTML = html;
-            document.getElementById('historySection').style.display = history.length > 0 ? 'block' : 'none';
+            document.getElementById('historySection').style.display = 'block';
         }
 
         function calculateCombo() {
@@ -875,7 +874,8 @@
             
             document.getElementById('resultSection').style.display = 'none';
             document.getElementById('detailsSection').style.display = 'none';
-            document.getElementById('historySection').style.display = 'none';
+            const history = JSON.parse(localStorage.getItem('comboHistory') || '[]');
+            document.getElementById('historySection').style.display = history.length > 0 ? 'block' : 'none';
             clearError();
             detailsVisible = false;
         }
